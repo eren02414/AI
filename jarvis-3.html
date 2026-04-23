@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --hud-blue: #00d4ff;
+    --hud-cyan: #00ffff;
+    --hud-glow: #0af;
+    --dark-bg: #000d1a;
+    --panel-bg: rgba(0, 30, 60, 0.6);
+    --danger: #ff4444;
+    --success: #00ff88;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark-bg);
+    color: var(--hud-blue);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(40px); }
+  }
+
+  /* Scan line effect */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(transparent, var(--hud-blue), transparent);
+    animation: scan 4s linear infinite;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  @keyframes scan {
+    0% { top: -1%; }
+    100% { top: 101%; }
+  }
+
+  /* Corner decorations */
+  .corner {
+    position: fixed;
+    width: 80px;
+    height: 80px;
+    border-color: var(--hud-blue);
+    border-style: solid;
+    opacity: 0.6;
+  }
+  .corner.tl { top: 20px; left: 20px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: 20px; right: 20px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 20px; left: 20px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 20px; right: 20px; border-width: 0 2px 2px 0; }
+
+  /* Main arc reactor ring */
+  .arc-reactor {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin-bottom: 30px;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: spinRing linear infinite;
+  }
+
+  .ring-1 {
+    inset: 0;
+    border-top-color: var(--hud-blue);
+    border-right-color: var(--hud-blue);
+    animation-duration: 3s;
+    box-shadow: 0 0 15px var(--hud-blue);
+  }
+
+  .ring-2 {
+    inset: 15px;
+    border-bottom-color: var(--hud-cyan);
+    border-left-color: var(--hud-cyan);
+    animation-duration: 2s;
+    animation-direction: reverse;
+    opacity: 0.8;
+  }
+
+  .ring-3 {
+    inset: 30px;
+    border-top-color: var(--hud-blue);
+    animation-duration: 4s;
+    opacity: 0.6;
+  }
+
+  @keyframes spinRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .core {
+    position: absolute;
+    inset: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.8) 0%, rgba(0, 212, 255, 0.2) 50%, transparent 70%);
+    animation: pulse 2s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: white;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px var(--hud-blue), 0 0 40px rgba(0,212,255,0.3); opacity: 1; }
+    50% { box-shadow: 0 0 40px var(--hud-blue), 0 0 80px rgba(0,212,255,0.5); opacity: 0.8; }
+  }
+
+  /* Main container */
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 700px;
+    padding: 0 20px;
+    z-index: 10;
+  }
+
+  .title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 8px;
+    color: var(--hud-blue);
+    opacity: 0.7;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 10px;
+    color: white;
+    text-shadow: 0 0 20px var(--hud-blue), 0 0 40px rgba(0,212,255,0.5);
+    margin-bottom: 8px;
+  }
+
+  .version {
+    font-size: 12px;
+    letter-spacing: 4px;
+    opacity: 0.4;
+    margin-bottom: 30px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Chat area */
+  .chat-area {
+    width: 100%;
+    height: 280px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 4px;
+    padding: 20px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    position: relative;
+    backdrop-filter: blur(10px);
+  }
+
+  .chat-area::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--hud-blue), transparent);
+  }
+
+  .chat-area::-webkit-scrollbar { width: 3px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--hud-blue); border-radius: 2px; }
+
+  .message {
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.jarvis .label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--hud-blue);
+    margin-bottom: 5px;
+    opacity: 0.8;
+  }
+
+  .message.user .label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--hud-cyan);
+    margin-bottom: 5px;
+    opacity: 0.8;
+    text-align: right;
+  }
+
+  .message.jarvis .bubble {
+    background: rgba(0, 212, 255, 0.05);
+    border-left: 2px solid var(--hud-blue);
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.9);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 300;
+  }
+
+  .message.user .bubble {
+    background: rgba(0, 255, 255, 0.05);
+    border-right: 2px solid var(--hud-cyan);
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.9);
+    text-align: right;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .typing {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 10px 14px;
+  }
+
+  .typing span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--hud-blue);
+    animation: typingDot 1.2s ease-in-out infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-8px); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .input-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .input-wrapper::before {
+    content: '> ';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--hud-blue);
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    opacity: 0.6;
+  }
+
+  input {
+    width: 100%;
+    background: var(--panel-bg);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 2px;
+    padding: 14px 14px 14px 32px;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    outline: none;
+    backdrop-filter: blur(10px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  input:focus {
+    border-color: var(--hud-blue);
+    box-shadow: 0 0 15px rgba(0,212,255,0.2), inset 0 0 10px rgba(0,212,255,0.05);
+  }
+
+  input::placeholder {
+    color: rgba(0, 212, 255, 0.3);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  button {
+    background: transparent;
+    border: 1px solid var(--hud-blue);
+    color: var(--hud-blue);
+    padding: 14px 22px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  button:hover {
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+
+  button:active {
+    background: rgba(0, 212, 255, 0.2);
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Side panels */
+  .side-stats {
+    position: fixed;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    opacity: 0.5;
+  }
+
+  .stat-item {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--hud-blue);
+  }
+
+  .stat-bar {
+    width: 80px;
+    height: 2px;
+    background: rgba(0,212,255,0.2);
+    margin-top: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-fill {
+    height: 100%;
+    background: var(--hud-blue);
+    animation: statAnimate 3s ease-in-out infinite;
+  }
+
+  @keyframes statAnimate {
+    0%, 100% { width: 85%; }
+    50% { width: 92%; }
+  }
+
+  /* Voice button */
+  .mic-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    color: var(--hud-blue);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .mic-btn:hover {
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+
+  .mic-btn.listening {
+    border-color: #ff4444;
+    color: #ff4444;
+    animation: micPulse 1s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(255,68,68,0.4);
+  }
+
+  .mic-btn.speaking {
+    border-color: var(--success);
+    color: var(--success);
+    box-shadow: 0 0 20px rgba(0,255,136,0.4);
+    animation: speakPulse 0.6s ease-in-out infinite;
+  }
+
+  @keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255,68,68,0.4); }
+    50% { box-shadow: 0 0 30px rgba(255,68,68,0.8); }
+  }
+
+  @keyframes speakPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(0,255,136,0.4); }
+    50% { box-shadow: 0 0 30px rgba(0,255,136,0.8); }
+  }
+
+  /* Voice status */
+  .voice-status {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--hud-blue);
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-align: center;
+    margin-top: 6px;
+    height: 14px;
+  }
+
+  .voice-status.active { opacity: 0.7; }
+
+  /* Waveform visualizer */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .waveform.active { opacity: 1; }
+
+  .waveform-bar {
+    width: 3px;
+    background: #ff4444;
+    border-radius: 2px;
+    animation: wave 0.8s ease-in-out infinite;
+    height: 4px;
+  }
+
+  .waveform-bar:nth-child(1) { animation-delay: 0s; }
+  .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+  .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+  .waveform-bar:nth-child(5) { animation-delay: 0.1s; }
+
+  @keyframes wave {
+    0%, 100% { height: 4px; }
+    50% { height: 18px; }
+  }
+
+  @media (max-width: 600px) {
+    .side-stats { display: none; }
+    .arc-reactor { width: 120px; height: 120px; }
+    .core { inset: 35px; font-size: 8px; }
+    .ring-2 { inset: 10px; }
+    .ring-3 { inset: 20px; }
+    .subtitle { font-size: 20px; letter-spacing: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="side-stats">
+  <div class="stat-item">SİSTEM<div class="stat-bar"><div class="stat-fill" style="animation-duration:2.5s"></div></div></div>
+  <div class="stat-item">AĞ<div class="stat-bar"><div class="stat-fill" style="animation-duration:3.5s; animation-delay:0.5s"></div></div></div>
+  <div class="stat-item">BELLEK<div class="stat-bar"><div class="stat-fill" style="width:70%; animation-duration:4s"></div></div></div>
+  <div class="stat-item">KALKan<div class="stat-bar"><div class="stat-fill" style="width:100%;"></div></div></div>
+</div>
+
+<!-- ElevenLabs Setup Modal -->
+<div id="setupModal" style="
+  position:fixed; inset:0; background:rgba(0,5,15,0.97);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:999; font-family:'Rajdhani',sans-serif;
+">
+  <div style="max-width:480px; width:90%; text-align:center;">
+    <div style="font-family:'Orbitron',monospace; font-size:11px; letter-spacing:6px; color:#00d4ff; opacity:0.6; margin-bottom:8px;">STARK INDUSTRIES</div>
+    <div style="font-family:'Orbitron',monospace; font-size:22px; font-weight:900; letter-spacing:8px; color:white; text-shadow:0 0 20px #00d4ff; margin-bottom:6px;">J.A.R.V.I.S.</div>
+    <div style="font-size:12px; letter-spacing:3px; color:#00d4ff; opacity:0.4; margin-bottom:32px;">SES SİSTEMİ KURULUMU</div>
+
+    <div style="background:rgba(0,30,60,0.6); border:1px solid rgba(0,212,255,0.2); padding:24px; margin-bottom:16px; text-align:left;">
+      <div style="font-size:13px; color:rgba(255,255,255,0.8); line-height:1.7; margin-bottom:16px;">
+        Gerçekçi JARVIS sesi için <strong style="color:#00d4ff;">ElevenLabs</strong> API anahtarı gereklidir.<br>
+        <span style="opacity:0.6; font-size:12px;">
+          Ücretsiz hesap: <a href="https://elevenlabs.io" target="_blank" style="color:#00d4ff;">elevenlabs.io</a> → Profile → API Keys
+        </span>
+      </div>
+      <div style="font-size:11px; letter-spacing:2px; color:#00d4ff; opacity:0.6; margin-bottom:8px;">ELEVENLabs API KEY</div>
+      <input id="elApiKey" type="password" placeholder="sk-..." style="
+        width:100%; background:rgba(0,10,30,0.8); border:1px solid rgba(0,212,255,0.3);
+        padding:12px 14px; color:white; font-family:'Rajdhani',sans-serif; font-size:14px;
+        outline:none; letter-spacing:1px; margin-bottom:16px; border-radius:2px;
+      " />
+
+      <div style="font-size:11px; letter-spacing:2px; color:#00d4ff; opacity:0.6; margin-bottom:8px;">SES MODELİ</div>
+      <select id="voiceSelect" style="
+        width:100%; background:rgba(0,10,30,0.8); border:1px solid rgba(0,212,255,0.3);
+        padding:12px 14px; color:#00d4ff; font-family:'Orbitron',monospace; font-size:10px;
+        outline:none; letter-spacing:1px; margin-bottom:20px; border-radius:2px; cursor:pointer;
+      ">
+        <option value="nPczCjzI2devNBz1zQrb">BRIAN — Otoriter, Derin (Önerilen)</option>
+        <option value="TX3LPaxmHKxFdv7VOQHJ">LIAM — Sakin, Net</option>
+        <option value="onwK4e9ZLuTAKqWW03F9">DANIEL — İngiliz, Resmi</option>
+        <option value="N2lVS1w4EtoT3dr4eOWO">CALLUM — Dramatik</option>
+        <option value="bIHbv24MWmeRgasZH58o">WILL — Enerjik</option>
+      </select>
+
+      <button onclick="initJarvis()" style="
+        width:100%; background:transparent; border:1px solid #00d4ff; color:#00d4ff;
+        padding:14px; font-family:'Orbitron',monospace; font-size:11px; letter-spacing:3px;
+        cursor:pointer; transition:all 0.3s; text-transform:uppercase;
+      " onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='transparent'">
+        SİSTEMİ BAŞLAT
+      </button>
+    </div>
+
+    <div style="font-size:11px; color:rgba(0,212,255,0.3); letter-spacing:1px; line-height:1.6;">
+      API key'iniz tarayıcıda saklanır, hiçbir yere gönderilmez.<br>
+      ElevenLabs ücretsiz hesapta aylık 10.000 karakter hakkı verir.
+    </div>
+
+    <div style="margin-top:16px;">
+      <button onclick="skipElevenLabs()" style="
+        background:transparent; border:none; color:rgba(0,212,255,0.3);
+        font-family:'Rajdhani',sans-serif; font-size:12px; letter-spacing:2px;
+        cursor:pointer; text-decoration:underline; padding:8px;
+      ">Tarayıcı sesiyle devam et (düşük kalite)</button>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="mainApp" style="display:none">
+  <div class="arc-reactor">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="core">J.A.R.V.I.S</div>
+  </div>
+
+  <div class="title">Stark Industries — Yapay Zeka Sistemi</div>
+  <div class="subtitle">J.A.R.V.I.S.</div>
+  <div class="version">V E R S I O N &nbsp; 7 . 1 . 2 &nbsp; — &nbsp; T Ü R K Ç E &nbsp; A K T İ F</div>
+
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot"></div>ÇEVRIMIÇI</div>
+    <div class="status-item"><div class="status-dot" style="animation-delay:0.5s"></div>BAĞLI</div>
+    <div class="status-item"><div class="status-dot" style="animation-delay:1s"></div>GÜVENLİ</div>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="message jarvis">
+      <div class="label">J.A.R.V.I.S. // 00:00:01</div>
+      <div class="bubble">Günaydın, efendim. J.A.R.V.I.S. — Just A Rather Very Intelligent System — çevrimiçi ve hazır. Tüm sistemler nominal seviyede çalışıyor. Size nasıl yardımcı olabilirim?</div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <button class="mic-btn" id="micBtn" title="Sesli komut">🎤</button>
+    <div class="waveform" id="waveform">
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+    </div>
+    <div class="input-wrapper">
+      <input type="text" id="userInput" placeholder="KOMUT GİRİN VEYA MİKROFONA BASIN..." autocomplete="off" />
+    </div>
+    <button id="sendBtn" onclick="sendMessage()">GÖNDER</button>
+  </div>
+  <div class="voice-status" id="voiceStatus">DİNLİYOR...</div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────
+let EL_API_KEY = localStorage.getItem('jarvis_el_key') || '';
+let EL_VOICE_ID = localStorage.getItem('jarvis_el_voice') || 'nPczCjzI2devNBz1zQrb';
+let useElevenLabs = false;
+
+function initJarvis() {
+  const key = document.getElementById('elApiKey').value.trim();
+  const voice = document.getElementById('voiceSelect').value;
+  if (!key) { alert('Lütfen ElevenLabs API key girin.'); return; }
+  EL_API_KEY = key;
+  EL_VOICE_ID = voice;
+  localStorage.setItem('jarvis_el_key', key);
+  localStorage.setItem('jarvis_el_voice', voice);
+  useElevenLabs = true;
+  launchApp();
+}
+
+function skipElevenLabs() {
+  useElevenLabs = false;
+  launchApp();
+}
+
+function launchApp() {
+  document.getElementById('setupModal').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  userInput.focus();
+  setTimeout(() => speakText('Günaydın efendim. J.A.R.V.I.S. çevrimiçi ve hazır. Size nasıl yardımcı olabilirim?'), 400);
+}
+
+// Pre-fill if saved
+if (EL_API_KEY) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('elApiKey');
+    if (inp) inp.value = EL_API_KEY;
+    const sel = document.getElementById('voiceSelect');
+    if (sel && [...sel.options].some(o => o.value === EL_VOICE_ID)) sel.value = EL_VOICE_ID;
+  });
+}
+
+// ── Prompt ────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `Sen J.A.R.V.I.S. (Just A Rather Very Intelligent System) olarak davranacaksın — Marvel filmlerindeki Tony Stark'ın yapay zeka asistanı.
+
+KARAKTERİN:
+- Kullanıcına daima "efendim" diye hitap edersin
+- Kibarsın, zekisin, hafif alaycı ve nüktedasın ama her zaman saygılısın
+- Teknik bilgin son derece geniştir
+- Türkçe konuşursun, zaman zaman İngilizce teknik terimler kullanabilirsin
+- Bazen [Analiz tamamlandı] veya [Tarama yapılıyor] gibi kısa HUD notları ekleyebilirsin
+- Tony Stark ve Avengers'a dolaylı referanslar yapabilirsin
+- Asla karakter dışına çıkmazsın
+- Cevapların sinematik, kısa-orta uzunlukta olsun`;
+
+// ── DOM ───────────────────────────────────────────────────────────
+const chatArea = document.getElementById('chatArea');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const waveform = document.getElementById('waveform');
+const voiceStatus = document.getElementById('voiceStatus');
+
+let conversationHistory = [];
+let isListening = false;
+let isSpeaking = false;
+let recognition = null;
+let currentAudio = null;
+
+// ── State ─────────────────────────────────────────────────────────
+function setState(state) {
+  micBtn.classList.remove('listening', 'speaking');
+  waveform.classList.remove('active');
+  voiceStatus.classList.remove('active');
+
+  if (state === 'listening') {
+    isListening = true; isSpeaking = false;
+    micBtn.textContent = '⏹';
+    micBtn.classList.add('listening');
+    waveform.classList.add('active');
+    voiceStatus.textContent = 'DİNLİYOR — KONUŞUN...';
+    voiceStatus.classList.add('active');
+  } else if (state === 'speaking') {
+    isListening = false; isSpeaking = true;
+    micBtn.textContent = '🔊';
+    micBtn.classList.add('speaking');
+    voiceStatus.textContent = 'J.A.R.V.I.S. KONUŞUYOR...';
+    voiceStatus.classList.add('active');
+  } else {
+    isListening = false; isSpeaking = false;
+    micBtn.textContent = '🎤';
+  }
+}
+
+// ── ElevenLabs TTS ────────────────────────────────────────────────
+async function speakElevenLabs(text) {
+  const clean = text.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
+  if (!clean) return;
+  setState('speaking');
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}/stream`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': EL_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: clean,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.88, style: 0.2, use_speaker_boost: true }
+      })
+    });
+    if (!res.ok) throw new Error(res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.playbackRate = 0.93;
+    currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; setState('idle'); };
+    currentAudio.onerror = () => { currentAudio = null; setState('idle'); };
+    await currentAudio.play();
+  } catch(e) {
+    console.warn('ElevenLabs hata, fallback:', e);
+    setState('idle');
+    fallbackSpeak(text);
+  }
+}
+
+// ── Browser TTS fallback ──────────────────────────────────────────
+function fallbackSpeak(text) {
+  if (!window.speechSynthesis) return;
+  const clean = text.replace(/\[.*?\]/g, '').trim();
+  window.speechSynthesis.cancel();
+  const voices = window.speechSynthesis.getVoices();
+  const voice = voices.find(v => /daniel|alex|fred/i.test(v.name))
+    || voices.find(v => v.lang.startsWith('en-GB'))
+    || voices.find(v => v.lang.startsWith('tr'))
+    || voices[0];
+  const utter = new SpeechSynthesisUtterance(clean);
+  if (voice) { utter.voice = voice; utter.lang = voice.lang; }
+  else utter.lang = 'tr-TR';
+  utter.rate = 0.85; utter.pitch = 0.7; utter.volume = 1;
+  utter.onstart = () => setState('speaking');
+  utter.onend = () => setState('idle');
+  utter.onerror = () => setState('idle');
+  window.speechSynthesis.speak(utter);
+}
+
+async function speakText(text) {
+  if (isSpeaking) stopSpeaking();
+  if (useElevenLabs && EL_API_KEY) await speakElevenLabs(text);
+  else fallbackSpeak(text);
+}
+
+function stopSpeaking() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  window.speechSynthesis?.cancel();
+  setState('idle');
+}
+
+// ── Speech Recognition ────────────────────────────────────────────
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SR) {
+  micBtn.style.opacity = '0.3';
+  micBtn.style.cursor = 'not-allowed';
+  micBtn.title = 'Chrome önerilir';
+} else {
+  micBtn.addEventListener('click', () => {
+    if (isSpeaking) { stopSpeaking(); return; }
+    if (isListening) { recognition?.stop(); return; }
+    startListening();
+  });
+}
+
+function startListening() {
+  recognition = new SR();
+  recognition.lang = 'tr-TR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    setState('listening');
+    userInput.value = '';
+    userInput.placeholder = 'Dinliyor...';
+  };
+
+  recognition.onresult = (e) => {
+    let final = '', interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    userInput.value = final || interim;
+  };
+
+  recognition.onend = () => {
+    setState('idle');
+    userInput.placeholder = 'KOMUT GİRİN VEYA MİKROFONA BASIN...';
+    const txt = userInput.value.trim();
+    if (txt) sendMessage();
+  };
+
+  recognition.onerror = (e) => {
+    setState('idle');
+    const msgs = { 'not-allowed': 'MİKROFON İZNİ VERİN', 'no-speech': 'SES ALGILANMADI', 'network': 'AĞ HATASI' };
+    voiceStatus.textContent = msgs[e.error] || 'MİKROFON HATASI';
+    voiceStatus.classList.add('active');
+    userInput.placeholder = 'KOMUT GİRİN VEYA MİKROFONA BASIN...';
+    setTimeout(() => voiceStatus.classList.remove('active'), 3000);
+  };
+
+  try { recognition.start(); } catch(e) {}
+}
+
+// ── Chat ──────────────────────────────────────────────────────────
+function getTime() { return new Date().toTimeString().slice(0, 8); }
+
+function addMessage(role, text) {
+  const msg = document.createElement('div');
+  msg.className = `message ${role}`;
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = role === 'jarvis' ? `J.A.R.V.I.S. // ${getTime()}` : `SİZ // ${getTime()}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  msg.appendChild(label);
+  msg.appendChild(bubble);
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'typing'; el.id = 'typingIndicator';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  chatArea.appendChild(el);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function hideTyping() { document.getElementById('typingIndicator')?.remove(); }
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+  userInput.value = '';
+  sendBtn.disabled = true;
+  userInput.disabled = true;
+  addMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        system: SYSTEM_PROMPT,
+        messages: conversationHistory
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Üzgünüm efendim, bir hata oluştu.';
+    hideTyping();
+    addMessage('jarvis', reply);
+    conversationHistory.push({ role: 'assistant', content: reply });
+    speakText(reply);
+  } catch(err) {
+    hideTyping();
+    const errMsg = 'Efendim, sistemde bir bağlantı anomalisi tespit edildi.';
+    addMessage('jarvis', errMsg);
+    speakText(errMsg);
+  }
+
+  sendBtn.disabled = false;
+  userInput.disabled = false;
+  userInput.focus();
+}
+
+userInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+window.speechSynthesis?.getVoices();
+</script>
+</body>
+</html>
